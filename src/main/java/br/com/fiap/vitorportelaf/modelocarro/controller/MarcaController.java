@@ -1,7 +1,6 @@
 package br.com.fiap.vitorportelaf.modelocarro.controller;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,8 +13,14 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import br.com.fiap.vitorportelaf.modelocarro.dto.MarcaCreateRequest;
+import br.com.fiap.vitorportelaf.modelocarro.dto.MarcaResponse;
+import br.com.fiap.vitorportelaf.modelocarro.dto.MarcaUpdateRequest;
+import br.com.fiap.vitorportelaf.modelocarro.mapper.MarcaMapper;
 import br.com.fiap.vitorportelaf.modelocarro.model.Marca;
 import br.com.fiap.vitorportelaf.modelocarro.repository.MarcaRepository;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("api/${api.version}/marcas")
@@ -24,34 +29,39 @@ public class MarcaController {
     @Autowired
     private MarcaRepository repository;
 
+    @Autowired
+    private MarcaMapper mapper;
+
     @PostMapping
-    public ResponseEntity<Marca> create(@RequestBody Marca marca) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(repository.save(marca));
+    public ResponseEntity<MarcaResponse> create(@Valid @RequestBody MarcaCreateRequest dtoRequest) {
+        Marca marca = repository.save(mapper.toModel(dtoRequest));
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toDto(marca));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Marca> findById(@PathVariable Long id) {
+    public ResponseEntity<MarcaResponse> findById(@PathVariable Long id) {
         return repository
                 .findById(id)
+                .map(mapper::toDto)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping
-    public ResponseEntity<List<Marca>> findAll() {
-        return ResponseEntity.ok(repository.findAll());
+    public ResponseEntity<List<MarcaResponse>> findAll() {
+        return ResponseEntity.ok(
+                repository.findAll().stream()
+                        .map(mapper::toDto)
+                        .toList());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Marca> update(@PathVariable Long id,
-                                         @RequestBody Marca marca) {
+    public ResponseEntity<MarcaResponse> update(@PathVariable Long id,
+                                                @RequestBody MarcaUpdateRequest dtoRequest) {
 
-        Optional<Marca> optMarca = repository.findById(id);
-
-        if (optMarca.isPresent()) {
-            marca.setId(id);
-            Marca marcaAlterada = repository.save(marca);
-            return ResponseEntity.ok(marcaAlterada);
+        if (repository.existsById(id)) {
+            Marca marcaAlterada = repository.save(mapper.toModel(id, dtoRequest));
+            return ResponseEntity.ok(mapper.toDto(marcaAlterada));
         } else {
             return ResponseEntity.notFound().build();
         }

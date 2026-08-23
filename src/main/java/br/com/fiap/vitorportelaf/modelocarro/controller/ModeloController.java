@@ -1,7 +1,6 @@
 package br.com.fiap.vitorportelaf.modelocarro.controller;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,8 +13,14 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import br.com.fiap.vitorportelaf.modelocarro.dto.ModeloCreateRequest;
+import br.com.fiap.vitorportelaf.modelocarro.dto.ModeloResponse;
+import br.com.fiap.vitorportelaf.modelocarro.dto.ModeloUpdateRequest;
+import br.com.fiap.vitorportelaf.modelocarro.mapper.ModeloMapper;
 import br.com.fiap.vitorportelaf.modelocarro.model.Modelo;
 import br.com.fiap.vitorportelaf.modelocarro.repository.ModeloRepository;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("api/${api.version}/modelos")
@@ -24,34 +29,39 @@ public class ModeloController {
     @Autowired
     private ModeloRepository repository;
 
+    @Autowired
+    private ModeloMapper mapper;
+
     @PostMapping
-    public ResponseEntity<Modelo> create(@RequestBody Modelo modelo) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(repository.save(modelo));
+    public ResponseEntity<ModeloResponse> create(@Valid @RequestBody ModeloCreateRequest dtoRequest) {
+        Modelo modelo = repository.save(mapper.toModel(dtoRequest));
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toDto(modelo));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Modelo> findById(@PathVariable Long id) {
+    public ResponseEntity<ModeloResponse> findById(@PathVariable Long id) {
         return repository
                 .findById(id)
+                .map(mapper::toDto)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping
-    public ResponseEntity<List<Modelo>> findAll() {
-        return ResponseEntity.ok(repository.findAll());
+    public ResponseEntity<List<ModeloResponse>> findAll() {
+        return ResponseEntity.ok(
+                repository.findAll().stream()
+                        .map(mapper::toDto)
+                        .toList());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Modelo> update(@PathVariable Long id,
-                                          @RequestBody Modelo modelo) {
+    public ResponseEntity<ModeloResponse> update(@PathVariable Long id,
+                                                 @RequestBody ModeloUpdateRequest dtoRequest) {
 
-        Optional<Modelo> optModelo = repository.findById(id);
-
-        if (optModelo.isPresent()) {
-            modelo.setId(id);
-            Modelo modeloAlterado = repository.save(modelo);
-            return ResponseEntity.ok(modeloAlterado);
+        if (repository.existsById(id)) {
+            Modelo modeloAlterado = repository.save(mapper.toModel(id, dtoRequest));
+            return ResponseEntity.ok(mapper.toDto(modeloAlterado));
         } else {
             return ResponseEntity.notFound().build();
         }
