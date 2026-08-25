@@ -1,87 +1,17 @@
 # modelocarro
 
-API RESTful em Spring Boot para gerenciamento de marcas e modelos de carros, com persistência em MySQL.
+API RESTful em Spring Boot para gerenciamento de marcas e modelos de carros.
 
-## Checkpoint 3 — Refatoração com DTOs e Mappers
+Este README foi reduzido para conter apenas o que é exigido na entrega: instruções
+para executar a aplicação localmente (via Maven), instruções para rodar a imagem
+Docker publicada (pull/run) com as variáveis necessárias, informação sobre
+profiles e como acessar o Swagger/OpenAPI.
 
-Nesta entrega o projeto do Checkpoint 2 foi refatorado para aplicar a separação de
-responsabilidades entre o modelo de persistência (Entities JPA) e o contrato da API (DTOs).
-As entidades, os repositories e as rotas do CRUD continuam os mesmos — o que mudou foi
-a forma como a API recebe e retorna os dados.
+---
 
-### O que mudou
+## Como rodar a aplicação (desenvolvimento)
 
-- **DTOs de request** (`dto`): `MarcaCreateRequest`, `MarcaUpdateRequest`,
-  `ModeloCreateRequest` e `ModeloUpdateRequest`. As Controllers não recebem mais entidades
-  JPA no corpo das requisições. Os DTOs de criação possuem validações
-  (Bean Validation: `@NotNull`, `@NotBlank`, `@Size`, `@Positive`, `@PositiveOrZero`).
-- **DTOs de response** (`dto`): `MarcaResponse` e `ModeloResponse`. Todas as operações de
-  criação, consulta, atualização e listagem retornam DTOs — nenhuma entidade JPA é mais
-  exposta nas respostas.
-- **Mappers** (`mapper`): `MarcaMapper` e `ModeloMapper` centralizam toda a conversão
-  entre DTOs e Entities usando ModelMapper (`toModel`, `toModel(id, dto)` e `toDto`).
-- **Controllers refatoradas**: `MarcaController` e `ModeloController` agora recebem DTOs
-  de request, delegam a conversão para os Mappers e retornam DTOs de response.
-  As rotas de leitura (`findAll` e `findById`) continuam usando o verbo **GET**.
-- **Dependências novas** no `pom.xml`: `modelmapper` e `spring-boot-starter-validation`.
-
-### Estrutura de pacotes
-
-```
-br.com.fiap.vitorportelaf.modelocarro
-├── controller    → MarcaController, ModeloController
-├── dto           → Create/Update Requests e Responses
-├── mapper        → MarcaMapper, ModeloMapper
-├── model         → Entities JPA (Marca, Modelo)
-└── repository    → MarcaRepository, ModeloRepository
-```
-
-### Rotas da API
-
-| Método | Rota                     | Corpo (request)       | Retorno (response)     |
-|--------|--------------------------|-----------------------|------------------------|
-| POST   | `/api/v1/marcas`         | `MarcaCreateRequest`  | `MarcaResponse`        |
-| GET    | `/api/v1/marcas`         | —                     | `List<MarcaResponse>`  |
-| GET    | `/api/v1/marcas/{id}`    | —                     | `MarcaResponse`        |
-| PUT    | `/api/v1/marcas/{id}`    | `MarcaUpdateRequest`  | `MarcaResponse`        |
-| DELETE | `/api/v1/marcas/{id}`    | —                     | —                      |
-| POST   | `/api/v1/modelos`        | `ModeloCreateRequest` | `ModeloResponse`       |
-| GET    | `/api/v1/modelos`        | —                     | `List<ModeloResponse>` |
-| GET    | `/api/v1/modelos/{id}`   | —                     | `ModeloResponse`       |
-| PUT    | `/api/v1/modelos/{id}`   | `ModeloUpdateRequest` | `ModeloResponse`       |
-| DELETE | `/api/v1/modelos/{id}`   | —                     | —                      |
-
-Exemplo de corpo para criar uma marca:
-
-```json
-{
-  "id": 1,
-  "nome": "Volkswagen",
-  "paisOrigem": "Alemanha",
-  "anoFundacao": 1937,
-  "siteOficial": "https://www.vw.com.br",
-  "ativa": true
-}
-```
-
-Exemplo de corpo para criar um modelo:
-
-```json
-{
-  "id": 1,
-  "nome": "Golf GTI",
-  "anoLancamento": 2023,
-  "tipoCombustivel": "Gasolina",
-  "precoBase": 259990.00,
-  "observacoes": "Versao esportiva"
-}
-```
-
-## Como rodar a aplicação
-
-### 1. Subir o banco de dados (MySQL via Docker)
-
-Com o Docker Desktop em execução, rode no terminal:
+1) Subir o banco MySQL (exemplo via Docker):
 
 ```bash
 docker run -d \
@@ -94,25 +24,25 @@ docker run -d \
     mysql
 ```
 
-Aguarde cerca de 30 segundos para o MySQL inicializar.
+2) Rodar a aplicação localmente (na raiz do projeto):
 
-### 2. Rodar a aplicação Spring Boot
-
-Na raiz do projeto:
+Linux / macOS:
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
-No Windows:
+Windows:
 
-```bash
+```powershell
 mvnw.cmd spring-boot:run
 ```
 
-A aplicação sobe na porta **8080**.
+A aplicação sobe na porta 8080.
 
-### 3. Acessar o Swagger
+## Acessar o Swagger/OpenAPI
+
+Após a aplicação subir, o Swagger UI está disponível em:
 
 ```
 http://localhost:8080/
@@ -134,3 +64,73 @@ docker stop mysql
 - Clique em "DriverProperties" logo acima, ao lado de "Main" e clique em "Download"
 - Procure por "allowPublicKeyRetrieval" e deixe com o valor "true"
 - Clique em "Finish" e abra o banco
+
+---
+
+## Variáveis de ambiente
+
+### Linux / macOS
+
+```sh
+export DB_SERVER_URL=localhost
+export DB_SERVER_PORT=3306
+export DB_SCHEMA=modelocarro
+export DB_USER=root
+export DB_PWD=root_pwd
+export SPRING_PROFILES_ACTIVE=dev
+```
+
+### Windows PowerShell
+
+```powershell
+$env:DB_SERVER_URL="localhost"
+$env:DB_SERVER_PORT="3306"
+$env:DB_SCHEMA="modelocarro"
+$env:DB_USER="root"
+$env:DB_PWD="root_pwd"
+$env:SPRING_PROFILES_ACTIVE="dev"
+```
+
+---
+
+## Profile `prd` e migração
+
+Quando `SPRING_PROFILES_ACTIVE=prd` o projeto usa `spring.jpa.hibernate.ddl-auto=none`.
+Ou seja, o Hibernate NÃO cria ou atualiza tabelas nesse profile. Antes de executar a
+aplicação com `prd`, crie o schema/tabelas no banco executando o script de migration:
+`src/main/resources/migration-2026-08-23.sql`.
+
+
+## Execução com Docker
+
+Além do banco, a própria aplicação pode rodar em container.
+
+### 1. Criar a imagem
+
+Na raiz do projeto:
+
+```sh
+docker build -t modelocarro:1.0 .
+```
+
+### 2. Baixar imagem do Docker Hub (se aplicável)
+
+Se a imagem estiver publicada no Docker Hub, baixe-a substituindo `<usuario>` e `<tag>`:
+
+```sh
+docker pull <usuario>/modelocarro:<tag>
+```
+
+2) Executar a imagem (mapear porta 8080 e passar variáveis):
+
+```sh
+docker run \
+  -p 8080:8080 \
+  -e DB_SERVER_URL=host.docker.internal \
+  -e DB_SERVER_PORT=3306 \
+  -e DB_SCHEMA=modelocarro \
+  -e DB_USER=root \
+  -e DB_PWD=root_pwd \
+  -e SPRING_PROFILES_ACTIVE=dev \
+  modelocarro:1.0
+```

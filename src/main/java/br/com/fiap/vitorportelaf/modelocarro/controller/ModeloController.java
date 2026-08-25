@@ -19,7 +19,7 @@ import br.com.fiap.vitorportelaf.modelocarro.dto.ModeloResponse;
 import br.com.fiap.vitorportelaf.modelocarro.dto.ModeloUpdateRequest;
 import br.com.fiap.vitorportelaf.modelocarro.mapper.ModeloMapper;
 import br.com.fiap.vitorportelaf.modelocarro.model.Modelo;
-import br.com.fiap.vitorportelaf.modelocarro.repository.ModeloRepository;
+import br.com.fiap.vitorportelaf.modelocarro.service.ModeloService;
 import jakarta.validation.Valid;
 
 @RestController
@@ -27,20 +27,20 @@ import jakarta.validation.Valid;
 public class ModeloController {
 
     @Autowired
-    private ModeloRepository repository;
+    private ModeloService service;
 
     @Autowired
     private ModeloMapper mapper;
 
     @PostMapping
     public ResponseEntity<ModeloResponse> create(@Valid @RequestBody ModeloCreateRequest dtoRequest) {
-        Modelo modelo = repository.save(mapper.toModel(dtoRequest));
+        Modelo modelo = service.createOrUpdate(mapper.toModel(dtoRequest));
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toDto(modelo));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ModeloResponse> findById(@PathVariable Long id) {
-        return repository
+        return service
                 .findById(id)
                 .map(mapper::toDto)
                 .map(ResponseEntity::ok)
@@ -50,17 +50,17 @@ public class ModeloController {
     @GetMapping
     public ResponseEntity<List<ModeloResponse>> findAll() {
         return ResponseEntity.ok(
-                repository.findAll().stream()
+                service.findAll().stream()
                         .map(mapper::toDto)
                         .toList());
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ModeloResponse> update(@PathVariable Long id,
-                                                 @RequestBody ModeloUpdateRequest dtoRequest) {
+            @RequestBody ModeloUpdateRequest dtoRequest) {
 
-        if (repository.existsById(id)) {
-            Modelo modeloAlterado = repository.save(mapper.toModel(id, dtoRequest));
+        if (service.findById(id).isPresent()) {
+            Modelo modeloAlterado = service.createOrUpdate(mapper.toModel(id, dtoRequest));
             return ResponseEntity.ok(mapper.toDto(modeloAlterado));
         } else {
             return ResponseEntity.notFound().build();
@@ -69,7 +69,11 @@ public class ModeloController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteById(@PathVariable Long id) {
-        repository.deleteById(id);
-        return ResponseEntity.noContent().build();
+        if (service.findById(id).isPresent()) {
+            service.deleteById(id);
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
