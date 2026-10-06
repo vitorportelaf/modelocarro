@@ -12,8 +12,8 @@ Checkpoint 2 — Microservices and Web Engineering (2º semestre/2026).
 
 | Nome completo | RM |
 |---------------|----|
-| _preencher_   | _preencher_ |
-| _preencher_   | _preencher_ |
+|Vitor Portela Fantinto   | RM554540 |
+| Nicolas Varella Barros Padovam   | RM556586 |
 
 ---
 
